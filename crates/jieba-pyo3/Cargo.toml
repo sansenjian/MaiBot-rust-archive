@@ -1,0 +1,13 @@
+[package]
+name = "jieba-pyo3"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0"
+description = "P2: jieba-rs PyO3 wrapper, API-compatible with Python jieba cut/lcut"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+jieba-rs = "0.7"
