@@ -14,9 +14,18 @@
 //! j.lcut("麦麦来了", cut_all=False)
 //! ```
 
+use std::io::BufReader;
 use std::sync::Mutex;
 
 use anyhow::Context;
+
+/// CPython jieba 官方词典（MIT，fxsjy/jieba，34.9 万词条）——与 Python 版完全同一份数据，
+/// 保证词汇层与 `import jieba` 零差异。每实例构建一次（约百毫秒级）。
+static DICT: &[u8] = include_bytes!("../data/dict.txt");
+
+fn new_jieba() -> Jieba {
+    Jieba::with_dict(BufReader::new(DICT))
+}
 use jieba_rs::Jieba;
 use pyo3::exceptions::PyIOError;
 use pyo3::prelude::*;
@@ -32,7 +41,7 @@ impl PyJieba {
     #[new]
     fn new() -> Self {
         PyJieba {
-            inner: Mutex::new(Jieba::new()),
+            inner: Mutex::new(new_jieba()),
         }
     }
 
@@ -87,7 +96,7 @@ impl PyJieba {
 static DEFAULT: std::sync::OnceLock<Mutex<Jieba>> = std::sync::OnceLock::new();
 
 fn default_jieba() -> &'static Mutex<Jieba> {
-    DEFAULT.get_or_init(|| Mutex::new(Jieba::new()))
+    DEFAULT.get_or_init(|| Mutex::new(new_jieba()))
 }
 
 /// 对齐 jieba.lcut(text, cut_all=False)
@@ -124,7 +133,7 @@ mod tests {
 
     #[test]
     fn cut_basic() {
-        let jieba = Jieba::new();
+        let jieba = new_jieba();
         let words: Vec<String> = jieba
             .cut("麦麦是最可爱的机器人", false)
             .iter()
@@ -137,7 +146,7 @@ mod tests {
     #[test]
     fn add_word_changes_segmentation() {
         // 注意：jieba-rs 默认词典已含"俄亥俄州立大学"，选必然不在默认词典里的词
-        let mut jieba = Jieba::new();
+        let mut jieba = new_jieba();
         let before: Vec<String> = jieba
             .cut("启动绞杀者模式", false)
             .iter()
@@ -155,7 +164,7 @@ mod tests {
 
     #[test]
     fn cut_all_mode() {
-        let jieba = Jieba::new();
+        let jieba = new_jieba();
         let words = jieba.cut("麦麦", true);
         assert!(!words.is_empty());
     }

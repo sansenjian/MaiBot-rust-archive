@@ -45,6 +45,7 @@ pip install target/wheels/*.whl
 ```
 
 ```python
+# 词典：vendor 自 CPython jieba 官方 dict.txt（MIT），与 Python 版同一份数据
 import jieba_pyo3
 jieba_pyo3.lcut("麦麦是最可爱的机器人")
 

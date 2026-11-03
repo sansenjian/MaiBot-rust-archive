@@ -17,5 +17,5 @@ extension-module = ["pyo3/extension-module"]
 
 [dependencies]
 pyo3 = { version = "0.22", features = ["abi3-py38"] }
-jieba-rs = { version = "0.7", features = ["default-dict"] }
+jieba-rs = { version = "0.7", features = ["default-dict", "hmm"] }
 anyhow = "1"
