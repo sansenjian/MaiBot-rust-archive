@@ -57,7 +57,7 @@ impl PyJieba {
     /// 对齐 jieba.add_word(word, freq=None)
     #[pyo3(signature = (word, freq=None))]
     fn add_word(&self, word: &str, freq: Option<usize>) {
-        self.inner.lock().unwrap().add_word(word, freq);
+        self.inner.lock().unwrap().add_word(word, freq, None);
     }
 
     /// 对齐 jieba.load_userdict(path)：每行 "词 [词频]"，# 开头为注释
@@ -66,7 +66,7 @@ impl PyJieba {
             .with_context(|| format!("读取词典失败: {path}"))
             .map_err(|e| PyIOError::new_err(format!("{e:?}")))?;
         let mut jieba = self.inner.lock().unwrap();
-        for (lineno, line) in content.lines().enumerate() {
+        for line in content.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
                 continue;
@@ -76,20 +76,8 @@ impl PyJieba {
             if word.is_empty() {
                 continue;
             }
-            let freq = parts
-                .next()
-                .and_then(|f| f.parse::<usize>().ok())
-                .or_else(|| {
-                    line.split(' ')
-                        .nth(1)
-                        .and_then(|f| f.parse::<usize>().ok())
-                });
-            if word.as_bytes().iter().any(|&b| b.is_ascii_digit()) && word.len() == 1 {
-                // 单字符数字在 jieba 里是特殊路径，交回默认词典行为
-                continue;
-            }
-            jieba.add_word(word, freq);
-            let _ = lineno;
+            let freq = parts.next().and_then(|f| f.parse::<usize>().ok());
+            jieba.add_word(word, freq, None);
         }
         Ok(())
     }
@@ -150,7 +138,7 @@ mod tests {
     fn add_word_changes_segmentation() {
         let mut jieba = Jieba::new();
         let before: String = jieba.cut("俄亥俄州立大学", false).concat();
-        jieba.add_word("俄亥俄州立大学", None);
+        jieba.add_word("俄亥俄州立大学", None, None);
         let after: Vec<String> = jieba
             .cut("俄亥俄州立大学", false)
             .iter()
@@ -164,6 +152,6 @@ mod tests {
     fn cut_all_mode() {
         let jieba = Jieba::new();
         let words = jieba.cut("麦麦", true);
-        assert!(words.len() >= 1);
+        assert!(!words.is_empty());
     }
 }
