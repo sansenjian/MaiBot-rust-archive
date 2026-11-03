@@ -24,7 +24,7 @@ use anyhow::Context;
 static DICT: &[u8] = include_bytes!("../data/dict.txt");
 
 fn new_jieba() -> Jieba {
-    Jieba::with_dict(BufReader::new(DICT))
+    Jieba::with_dict(&mut BufReader::new(DICT)).expect("内置词典加载失败")
 }
 use jieba_rs::Jieba;
 use pyo3::exceptions::PyIOError;
