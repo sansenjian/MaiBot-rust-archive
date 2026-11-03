@@ -3,11 +3,19 @@ name = "jieba-pyo3"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0"
-description = "P2: jieba-rs PyO3 wrapper, API-compatible with Python jieba cut/lcut"
+description = "jieba-rs PyO3 wrapper, API-compatible with Python jieba cut/lcut"
 
 [lib]
+name = "jieba_pyo3"
 crate-type = ["cdylib"]
 
+[features]
+# CI/本地 cargo test 用 --no-default-features（需要链接 libpython）；
+# maturin 构建走 default（extension-module，不链接解释器）。
+default = ["extension-module"]
+extension-module = ["pyo3/extension-module"]
+
 [dependencies]
-pyo3 = { version = "0.22", features = ["extension-module"] }
-jieba-rs = "0.7"
+pyo3 = { version = "0.22", features = ["abi3-py38"] }
+jieba-rs = { version = "0.7", features = ["default-dict"] }
+anyhow = "1"

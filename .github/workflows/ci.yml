@@ -1,0 +1,36 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  jieba-pyo3:
+    name: build wheel + diff vs Python jieba
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install tools
+        run: pip install maturin jieba
+
+      - name: Build wheel (maturin)
+        run: cd crates/jieba-pyo3 && maturin build --release
+
+      - name: Rust unit tests (no extension-module)
+        run: cd crates/jieba-pyo3 && cargo test --no-default-features
+
+      - name: Install wheel
+        run: pip install crates/jieba-pyo3/target/wheels/*.whl
+
+      - name: Behavior diff vs Python jieba
+        run: python3 crates/jieba-pyo3/tests/python_diff.py
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jieba_pyo3-wheel
+          path: crates/jieba-pyo3/target/wheels/*.whl
