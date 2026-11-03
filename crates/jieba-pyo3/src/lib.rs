@@ -136,16 +136,21 @@ mod tests {
 
     #[test]
     fn add_word_changes_segmentation() {
+        // 注意：jieba-rs 默认词典已含"俄亥俄州立大学"，选必然不在默认词典里的词
         let mut jieba = Jieba::new();
-        let before: String = jieba.cut("俄亥俄州立大学", false).concat();
-        jieba.add_word("俄亥俄州立大学", None, None);
-        let after: Vec<String> = jieba
-            .cut("俄亥俄州立大学", false)
+        let before: Vec<String> = jieba
+            .cut("启动绞杀者模式", false)
             .iter()
             .map(|s| s.to_string())
             .collect();
-        assert_ne!(before, after.concat());
-        assert_eq!(after, vec!["俄亥俄州立大学".to_owned()]);
+        assert!(!before.contains(&"绞杀者模式".to_owned()));
+        jieba.add_word("绞杀者模式", None, None);
+        let after: Vec<String> = jieba
+            .cut("启动绞杀者模式", false)
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        assert!(after.contains(&"绞杀者模式".to_owned()));
     }
 
     #[test]
