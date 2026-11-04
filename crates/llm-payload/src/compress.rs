@@ -116,8 +116,11 @@ mod tests {
 
     #[test]
     fn passthrough_text_only_messages() {
+        // 键序不保证（serde_json 按字母序重排），做语义比较
         let msgs = r#"[{"role":"user","content":"hello"}]"#;
         let out = compress_messages_json(msgs, 100).unwrap();
-        assert_eq!(out, msgs);
+        let a: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let b: serde_json::Value = serde_json::from_str(msgs).unwrap();
+        assert_eq!(a, b);
     }
 }
