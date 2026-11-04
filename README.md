@@ -18,7 +18,7 @@ SnowLuma / NapCat ⇄ MaiBot-SnowLuma-Adapter-rust(已完成) ⇄ MaiBot-rust(�
 |---|---|---|---|
 | P1 | 消息适配器 | 独立进程 | ✅ 完成（Adapter-rust 仓库，CI 全绿） |
 | P2 | 分词（jieba-rs） | PyO3 扩展，Core 改一行 import 切换 | ✅ 可用（CI 产 wheel + 对齐 diff） |
-| P3 | LLM payload 构建（token 估算、历史裁剪、prompt 拼装） | PyO3 库 | 未开始 |
+| P3 | LLM payload 热路径（图片压缩 / ContextItem 投影 / token 计数） | PyO3 库 | ✅ 可用（CI 产 wheel + 行为 diff） |
 | P4 | 记忆检索下沉 | —— | ❌ 已决定不做（保持 Python 兼容） |
 | P5+ | chat 管道 / plugin Host / 人格引擎 | 待定 | 远期 |
 
@@ -57,3 +57,26 @@ j.lcut("麦麦来了")
 
 Core 切换（A_memorix 分词调用点）：`import jieba` → `import jieba_pyo3 as jieba`。
 验收：CI 中与 CPython jieba 的语料对齐 diff（门槛 85%，当前实测见 Actions 日志）。
+
+## P3 用法（llm-payload）
+
+```python
+import llm_payload, json
+
+# 1) 对齐 utils.py::compress_messages：压缩 OpenAI 消息里的 data-uri 图片
+msgs = json.dumps([{"role": "user", "content": [
+    {"type": "text", "text": "看图"},
+    {"type": "image_url", "image_url": {"url": "data:image/png;base64,...."}}]}])
+compressed = json.loads(llm_payload.compress_message_images(msgs))  # target_size 默认 1MB
+
+# 2) ContextItem（context_item.py 语义）→ OpenAI messages
+items = [{"type": "message", "role": "user", "parts": [{"type": "text", "text": "你好"}]}]
+messages = json.loads(llm_payload.items_to_messages(json.dumps(items, ensure_ascii=False)))
+
+# 3) cl100k_base token 计数（与 tiktoken 逐 token 一致）
+n = llm_payload.count_tokens("麦麦是最可爱的机器人")
+```
+
+⚠️ 范围说明：现代 MaiBot（≥v1.3）的 utils_model.py 已重构为 LLM 调度编排层（网络 IO 为主，
+无 Rust 化价值）；"token 估算/历史裁剪/prompt 拼装"旧假设来自更早版本。P3 对齐的是当前
+真实的 CPU 热路径：PIL 图片压缩管线、ContextItem 投影、token 计数。动图 GIF 压缩 v1 透传。

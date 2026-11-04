@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/maibot-core", "crates/jieba-pyo3"]
+members = ["crates/maibot-core", "crates/jieba-pyo3", "crates/llm-payload"]
 resolver = "2"
 
 [profile.release]
