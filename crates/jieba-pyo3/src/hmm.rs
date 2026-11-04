@@ -108,10 +108,10 @@ mod tests {
     #[test]
     fn hmm_merges_unknown_words() {
         let jieba = jieba_rs::Jieba::new();
-        // 麦麦/杭研 不在默认词典，应被 HMM 合并
+        // 连续未登录单字会被 HMM 合并为一个词（对齐 Python jieba 行为）
         assert_eq!(
             cut_with_hmm(&jieba, "麦麦去杭研", false),
-            vec!["麦麦", "去", "杭", "研"]
+            vec!["麦麦", "去", "杭研"]
         );
     }
 }
