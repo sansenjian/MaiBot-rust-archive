@@ -14,6 +14,8 @@
 //! j.lcut("麦麦来了", cut_all=False)
 //! ```
 
+mod hmm;
+
 use std::io::BufReader;
 use std::sync::Mutex;
 
@@ -48,13 +50,8 @@ impl PyJieba {
     /// 对齐 jieba.lcut(text, cut_all=False)；cut_all=True 对应全模式。
     #[pyo3(signature = (text, cut_all=false))]
     fn lcut(&self, text: &str, cut_all: bool) -> Vec<String> {
-        self.inner
-            .lock()
-            .unwrap()
-            .cut(text, cut_all)
-            .iter()
-            .map(|s| s.to_string())
-            .collect()
+        let jieba = self.inner.lock().unwrap();
+        hmm::cut_with_hmm(&jieba, text, cut_all)
     }
 
     /// 对齐 jieba.cut（Python 版返回生成器；这里直接返回列表，迭代行为一致）
@@ -103,13 +100,8 @@ fn default_jieba() -> &'static Mutex<Jieba> {
 #[pyfunction]
 #[pyo3(signature = (text, cut_all=false))]
 fn lcut(text: &str, cut_all: bool) -> Vec<String> {
-    default_jieba()
-        .lock()
-        .unwrap()
-        .cut(text, cut_all)
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
+    let jieba = default_jieba().lock().unwrap();
+    hmm::cut_with_hmm(&jieba, text, cut_all)
 }
 
 /// 对齐 jieba.cut（返回列表，迭代行为与生成器一致）
