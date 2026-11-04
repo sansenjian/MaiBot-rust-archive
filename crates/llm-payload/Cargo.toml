@@ -20,4 +20,4 @@ anyhow = "1"
 base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 gif = "0.13"
-tiktoken-rs = { version = "0.6", features = ["cl100k_base"] }
+tiktoken-rs = "0.6"  # 0.6 编码已内置，仅保留 async-openai/dhat-heap 可选 feature
