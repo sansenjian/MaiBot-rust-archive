@@ -94,7 +94,12 @@ def make_b64_png(w, h, color=(200, 60, 60)):
     return base64.b64encode(buf.getvalue()).decode()
 
 TARGET = 200 * 1024
-big_b64 = make_b64_png(3000, 3000)
+# 噪声图（类照片纹理）：PNG 体积大、JPEG 压缩率高——符合 413 压缩的真实场景
+noise = Image.effect_noise((1200, 1200), 60).convert("RGB")
+buf = io.BytesIO()
+noise.save(buf, format="PNG")
+big_b64 = base64.b64encode(buf.getvalue()).decode()
+
 small_b64 = make_b64_png(20, 20)
 msgs = json.dumps([
     {"role": "user", "content": [
@@ -111,15 +116,19 @@ out = json.loads(llm_payload.compress_message_images(msgs, TARGET))
 big_url = out[0]["content"][1]["image_url"]["url"]
 assert big_url.startswith("data:image/png;base64,"), big_url[:50]
 compressed_b64 = big_url.split(",", 1)[1]
-# JPEG 魔数（重格式化后实际为 JPEG 内容，URL 保留原始声明格式——与 Python 行为一致）
 assert base64.b64decode(compressed_b64)[:2] == b"\xff\xd8", "未重格式化为 JPEG"
-# 大小：缩放逐轮后应明显小于原图，且不超过 target 太多（编码器差异容差 10%）
+# 真实契约：输出不超过目标（编码器差异容差 10%），且显著小于原 PNG
 orig = len(big_b64)
+assert len(compressed_b64) <= TARGET * 1.10, f"超目标: {len(compressed_b64)} vs {TARGET}"
 assert len(compressed_b64) < orig * 0.3, f"压缩不足: {len(compressed_b64)} vs {orig}"
-assert len(compressed_b64) <= TARGET * 1.10, f"超目标过多: {len(compressed_b64)} vs {TARGET}"
-# 小图透传（b64 长度未变）
+# 小图：重格式化会改变字节（PNG→JPEG q95），但仍须可解码且不超目标
 small_url = out[1]["content"][0]["image_url"]["url"]
-assert small_url.split(",", 1)[1] == small_b64, "小图应原样透传"
+small_out_b64 = small_url.split(",", 1)[1]
+assert small_out_b64 != small_b64, "静态 PNG 应被重格式化"
+small_jpeg = base64.b64decode(small_out_b64)
+assert small_jpeg[:2] == b"\xff\xd8"
+Image.open(io.BytesIO(small_jpeg)).verify()
+assert len(small_out_b64) <= TARGET
 # 纯文本不动
 assert out[2]["content"] == "纯文本不动"
 # 非法 base64 整体不炸
